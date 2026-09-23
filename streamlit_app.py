@@ -127,34 +127,33 @@ def parse_main(df):
     """Parse the Advisor Pulse main tab: WIP, CSI strip, Advisor Performance."""
     m = {"wip": [], "perf": [], "jess_csi": cell(df, 3, 4),
          "dylan_csi": cell(df, 3, 5), "dealer_csi": cell(df, 5, 5)}
-    for r in range(3, 9):
+    for r in range(3, 10):
         label = cell(df, r, 0)
-        if label:
+        vals = [cell(df, r, c) for c in range(1, 4)]
+        if label and any(vals):
             m["wip"].append(
-                {"label": label, "dylan": cell(df, r, 1),
-                 "jessica": cell(df, r, 2), "total": cell(df, r, 3)}
+                {"label": label, "dylan": vals[0],
+                 "jessica": vals[1], "total": vals[2]}
             )
+    # Advisor Performance block: tolerant of reformatting (extra blank rows,
+    # section sub-headers). A metric row has a label AND at least one value.
     start = None
     for r in range(df.shape[0]):
-        if cell(df, r, 0) == "Advisor Performance":
+        if cell(df, r, 0).strip().lower() == "advisor performance":
             start = r + 2
             break
     if start:
-        blanks = 0
-        for r in range(start, min(start + 40, df.shape[0])):
+        for r in range(start, min(start + 60, df.shape[0])):
             label = cell(df, r, 0)
             if "OLDEST OPEN" in label.upper():
                 break
-            if not label:
-                blanks += 1
-                if blanks >= 2:
-                    break
+            vals = [cell(df, r, c) for c in range(1, 7)]
+            if not label or not any(vals):
                 continue
-            blanks = 0
             m["perf"].append(
-                {"label": label, "d_mtd": cell(df, r, 1), "d_tgt": cell(df, r, 2),
-                 "d_pct": cell(df, r, 3), "j_mtd": cell(df, r, 4),
-                 "j_tgt": cell(df, r, 5), "j_pct": cell(df, r, 6)}
+                {"label": label, "d_mtd": vals[0], "d_tgt": vals[1],
+                 "d_pct": vals[2], "j_mtd": vals[3],
+                 "j_tgt": vals[4], "j_pct": vals[5]}
             )
     return m
 
