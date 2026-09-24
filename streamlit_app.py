@@ -221,8 +221,6 @@ def perf_table(perf):
             f"<tr><td>{p['label']}</td><td class='num'>{p['d_mtd']}</td>"
             f"<td class='num'>{p['d_tgt']}</td>"
             f"<td class='num {pct_class(p['d_pct'])}'>{p['d_pct']}</td>"
-            f"<td class='num'>{p['d_tgt']}</td>"
-            f"<td class='num {pct_class(p['d_pct'])}'>{p['d_pct']}</td>"
             f"<td class='num'>{p['j_mtd']}</td><td class='num'>{p['j_tgt']}</td>"
             f"<td class='num {pct_class(p['j_pct'])}'>{p['j_pct']}</td></tr>"
         )
