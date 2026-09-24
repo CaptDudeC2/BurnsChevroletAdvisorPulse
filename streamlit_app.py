@@ -92,6 +92,11 @@ table.ap th {{
     padding: 0.55rem 0.6rem; text-align: left;
 }}
 table.ap th.num, table.ap td.num {{text-align: right;}}
+table.ap td.perf-section {{
+    background: {DEEP_NAVY}; color: white; font-weight: 800; font-size: 0.78rem;
+    letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
+    padding: 0.45rem 0.6rem;
+}}
 table.ap td {{
     padding: 0.5rem 0.6rem; border-top: 1px solid #E4EAF3;
     font-size: 0.88rem; background: #FFFFFF; color: #1c2733;
@@ -152,6 +157,11 @@ def parse_main(df):
             if "OLDEST OPEN" in label.upper():
                 break
             vals = [cell(df, r, c) for c in range(1, 7)]
+            if not label and any(vals):
+                # Section divider row, e.g. "Main Shop Performance".
+                section = next((v for v in vals if v), "")
+                m["perf"].append({"section": section})
+                continue
             if not label or not any(vals):
                 continue
             m["perf"].append(
@@ -217,6 +227,12 @@ def kpi_card(label, value, sub=""):
 def perf_table(perf):
     rows = ""
     for p in perf:
+        if "section" in p:
+            rows += (
+                f"<tr><td colspan='7' class='perf-section'>"
+                f"{p['section']}</td></tr>"
+            )
+            continue
         rows += (
             f"<tr><td>{p['label']}</td><td class='num'>{p['d_mtd']}</td>"
             f"<td class='num'>{p['d_tgt']}</td>"
