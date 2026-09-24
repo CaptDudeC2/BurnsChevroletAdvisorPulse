@@ -1,7 +1,8 @@
 """Advisor Performance Pulse - Burns Chevrolet of Gaffney.
 
 Reads the Advisor Pulse workbook's main tab live and renders the advisor
-performance snapshot: CSI, check-in media %, sales vs target, and WIP.
+performance snapshot: CSI, check-in media %, sales vs target, pay tracker,
+total WIP and its dollar value, and WIP.
 
 Deliberately excluded: the Dylan Pay / Jessica Pay tabs and the Raw WIP tab.
 The month-end pay tracker summary (Current MTD vs Tracking MTD per advisor)
@@ -172,6 +173,20 @@ def parse_main(df):
                 continue
             m["pay"].append({"advisor": advisor, "current": vals[0],
                             "tracking": vals[1], "variance": vals[2]})
+    # Total WIP / open ROs and potential sales: find the marker cell, then
+    # take the first non-empty value below it in the same column.
+    def below_marker(marker):
+        for r in range(df.shape[0]):
+            for c in range(df.shape[1]):
+                if marker in cell(df, r, c).upper():
+                    for r2 in range(r + 1, min(r + 4, df.shape[0])):
+                        v = cell(df, r2, c)
+                        if v:
+                            return v
+                    return ""
+        return ""
+    m["total_wip"] = below_marker("TOTAL WIP")
+    m["potential_sales"] = below_marker("POTENTIAL SALES")
     return m
 
 
@@ -204,6 +219,8 @@ def perf_table(perf):
     for p in perf:
         rows += (
             f"<tr><td>{p['label']}</td><td class='num'>{p['d_mtd']}</td>"
+            f"<td class='num'>{p['d_tgt']}</td>"
+            f"<td class='num {pct_class(p['d_pct'])}'>{p['d_pct']}</td>"
             f"<td class='num'>{p['d_tgt']}</td>"
             f"<td class='num {pct_class(p['d_pct'])}'>{p['d_pct']}</td>"
             f"<td class='num'>{p['j_mtd']}</td><td class='num'>{p['j_tgt']}</td>"
@@ -342,6 +359,12 @@ if main["pay"]:
     pay_table(main["pay"])
 
 st.markdown('<div class="section-title">WIP snapshot</div>', unsafe_allow_html=True)
+if main["total_wip"] or main["potential_sales"]:
+    c1, c2 = st.columns(2)
+    with c1:
+        kpi_card("Total WIP / Open ROs", main["total_wip"])
+    with c2:
+        kpi_card("Potential Sales", main["potential_sales"])
 wip_table(main["wip"])
 
 st.markdown('<div class="section-title">WIP detail</div>', unsafe_allow_html=True)
