@@ -4,6 +4,8 @@ Reads the Advisor Pulse workbook's main tab live and renders the advisor
 performance snapshot: CSI, check-in media %, sales vs target, and WIP.
 
 Deliberately excluded: the Dylan Pay / Jessica Pay tabs and the Raw WIP tab.
+The month-end pay tracker summary (Current MTD vs Tracking MTD per advisor)
+IS shown, sourced from the main tab only - never from the pay tabs.
 WIP category tabs (Needs Attention, Aged RO 30 Days, Ready to be Closed,
 Customer-VSC Approval, Parts Here No Vehicle) ARE included.
 This app is READ ONLY - all editing stays in the Google Sheet.
@@ -124,8 +126,9 @@ def cell(df, r, c):
 
 
 def parse_main(df):
-    """Parse the Advisor Pulse main tab: WIP, CSI strip, Advisor Performance."""
-    m = {"wip": [], "perf": [], "jess_csi": cell(df, 3, 4),
+    """Parse the Advisor Pulse main tab: WIP, CSI strip, pay tracker,
+    Advisor Performance."""
+    m = {"wip": [], "perf": [], "pay": [], "jess_csi": cell(df, 3, 4),
          "dylan_csi": cell(df, 3, 5), "dealer_csi": cell(df, 5, 5)}
     for r in range(3, 10):
         label = cell(df, r, 0)
@@ -155,6 +158,20 @@ def parse_main(df):
                  "d_pct": vals[2], "j_mtd": vals[3],
                  "j_tgt": vals[4], "j_pct": vals[5]}
             )
+    # Month-end pay tracker: find the marker, then read advisor rows below it.
+    pay_start = None
+    for r in range(df.shape[0]):
+        if "MONTH-END PAY TRACKER" in cell(df, r, 6).upper():
+            pay_start = r + 1
+            break
+    if pay_start:
+        for r in range(pay_start, min(pay_start + 8, df.shape[0])):
+            advisor = cell(df, r, 6)
+            vals = [cell(df, r, c) for c in (7, 8, 9)]
+            if not advisor or advisor.lower() == "advisor" or not any(vals):
+                continue
+            m["pay"].append({"advisor": advisor, "current": vals[0],
+                            "tracking": vals[1], "variance": vals[2]})
     return m
 
 
@@ -210,6 +227,29 @@ def wip_table(wip):
     st.markdown(
         "<table class='ap'><tr><th>WIP</th><th class='num'>Dylan</th>"
         "<th class='num'>Jessica</th><th class='num'>Total</th></tr>"
+        f"{rows}</table>",
+        unsafe_allow_html=True,
+    )
+
+
+def variance_class(s):
+    try:
+        v = float(str(s).replace("$", "").replace(",", "").strip())
+    except Exception:
+        return ""
+    return "good" if v >= 0 else "bad"
+
+
+def pay_table(pay):
+    rows = "".join(
+        f"<tr><td>{p['advisor']}</td><td class='num'>{p['current']}</td>"
+        f"<td class='num'>{p['tracking']}</td>"
+        f"<td class='num {variance_class(p['variance'])}'>{p['variance']}</td></tr>"
+        for p in pay
+    )
+    st.markdown(
+        "<table class='ap'><tr><th>Advisor</th><th class='num'>Current MTD</th>"
+        "<th class='num'>Tracking MTD</th><th class='num'>Variance</th></tr>"
         f"{rows}</table>",
         unsafe_allow_html=True,
     )
@@ -295,6 +335,11 @@ if media:
 st.markdown('<div class="section-title">Advisor performance vs target</div>',
             unsafe_allow_html=True)
 perf_table(main["perf"])
+
+if main["pay"]:
+    st.markdown('<div class="section-title">Month-end pay tracker</div>',
+                unsafe_allow_html=True)
+    pay_table(main["pay"])
 
 st.markdown('<div class="section-title">WIP snapshot</div>', unsafe_allow_html=True)
 wip_table(main["wip"])
