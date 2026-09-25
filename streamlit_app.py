@@ -343,6 +343,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.link_button("🗓️ Attendance — who's here / out today", "https://burns-attendance.streamlit.app/")
 st.markdown('<div class="section-title">CSI MTD</div>', unsafe_allow_html=True)
 c1, c2, c3 = st.columns(3)
 with c1:
